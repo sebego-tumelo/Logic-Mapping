@@ -1,0 +1,26 @@
+{
+  "name": "logic-mapping",
+  "version": "1.0.0",
+  "description": "maaping logic using tensorflow",
+  "keywords": [
+    "logic",
+    "mapping",
+    "tensorflow",
+    "learning"
+  ],
+  "homepage": "https://github.com/sebego-tumelo/Logic-Mapping#readme",
+  "bugs": {
+    "url": "https://github.com/sebego-tumelo/Logic-Mapping/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sebego-tumelo/Logic-Mapping.git"
+  },
+  "license": "ISC",
+  "author": "tumelo-sebego",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
