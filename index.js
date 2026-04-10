@@ -43,6 +43,7 @@ async function trainMappingModel() {
         epochs: 200,
         shuffle: true
     });
+    await model.save('file://./my-logic-model');
     console.log('Training Complete!');
 
     // 5. Test it with 011 (Expected: 0110)
