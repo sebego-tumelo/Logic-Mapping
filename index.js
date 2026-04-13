@@ -1,4 +1,14 @@
-const tf = require('@tensorflow/tfjs');
+const util = require('util');
+if (typeof util.isNullOrUndefined !== 'function') {
+  util.isNullOrUndefined = function (value) {
+    return value === null || value === undefined;
+  };
+}
+if (typeof util.isArray !== 'function') {
+  util.isArray = Array.isArray;
+}
+
+const tf = require('@tensorflow/tfjs-node');
 
 async function trainMappingModel() {
     // 1. Define the Dataset
