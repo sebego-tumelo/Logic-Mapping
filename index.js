@@ -1,3 +1,12 @@
+process.removeAllListeners('warning');
+// OR a more surgical approach:
+process.on('warning', (warning) => {
+    if (warning.name === 'DeprecationWarning' && warning.message.includes('url.parse')) {
+        return;
+    }
+    console.warn(warning.stack);
+});
+
 const util = require("util");
 util.isNullOrUndefined = util.isNullOrUndefined || function(x) { return x === null || x === undefined; };
 const tf = require('@tensorflow/tfjs-node');
