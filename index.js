@@ -106,7 +106,30 @@ function showMainMenu() {
     rl.question('user > ', handleMainMenu);
 }
 
+function promptForTrainingData() {
+    console.log('logic-map > enter data map (e.g., [000 - 1110, 001 - 0001])');
+    rl.question('user > ', (data) => {
+        const dataCmd = data.trim().toLowerCase();
+        
+        if (dataCmd === '/help') {
+            enterHelpMode(promptForTrainingData);
+            return;
+        }
+        
+        if (checkCommands(data)) return;
+        
+        trainModel(data);
+    });
+}
+
 async function handleMainMenu(choice) {
+    const cmd = choice.trim().toLowerCase();
+    
+    if (cmd === '/help') {
+        enterHelpMode(showMainMenu);
+        return;
+    }
+    
     if (checkCommands(choice)) return;
 
     if (choice === '1') {
@@ -119,11 +142,7 @@ async function handleMainMenu(choice) {
             showMainMenu();
         }
     } else if (choice === '2') {
-        console.log('logic-map > enter data map (e.g., [000 - 1110, 001 - 0001])');
-        rl.question('user > ', (data) => {
-            if (checkCommands(data)) return;
-            trainModel(data);
-        });
+        promptForTrainingData();
     } else {
         console.log('logic-map > Invalid option. Please enter 1 or 2.');
         console.log('logic-map > Type /help for more information.');
@@ -133,8 +152,50 @@ async function handleMainMenu(choice) {
 
 function askInference() {
     rl.question('logic-map > enter input (or /home) \nuser > ', (input) => {
+        const cmd = input.trim().toLowerCase();
+        
+        if (cmd === '/help') {
+            enterHelpMode(askInference);
+            return;
+        }
+        
         if (checkCommands(input)) return;
+        
         runInference(input);
+    });
+}
+
+/**
+ * Help Mode - Display help and wait for commands
+ */
+function enterHelpMode(returnCallback) {
+    console.log('\n--- Commands ---');
+    console.log('/home - Return to main menu');
+    console.log('/help - Show this list');
+    console.log('/exit - Close the program');
+    console.log('----------------\n');
+    
+    rl.question('user > ', (input) => {
+        const cmd = input.trim().toLowerCase();
+        
+        if (cmd === '/help') {
+            // Redisplay help
+            enterHelpMode(returnCallback);
+            return;
+        }
+        
+        if (cmd === '/exit') {
+            console.log('logic-map > shutting down...');
+            process.exit();
+        }
+        
+        if (cmd === '/home') {
+            returnCallback();
+            return;
+        }
+        
+        console.log('logic-map > Invalid command.');
+        enterHelpMode(returnCallback);
     });
 }
 
@@ -149,14 +210,6 @@ function checkCommands(input) {
     }
     if (cmd === '/home') {
         showMainMenu();
-        return true;
-    }
-    if (cmd === '/help') {
-        console.log('\n--- Commands ---');
-        console.log('/home - Return to main menu');
-        console.log('/help - Show this list');
-        console.log('/exit - Close the program');
-        console.log('----------------\n');
         return true;
     }
     return false;
