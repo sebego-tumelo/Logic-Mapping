@@ -42,23 +42,29 @@ function parseDataMap(inputString) {
  * Core Logic: Training the Neural Network
  */
 async function trainModel(dataString) {
-    const { xs, ys, inputShape, outputShape } = parseDataMap(dataString);
+    try {
+        const { xs, ys, inputShape, outputShape } = parseDataMap(dataString);
 
-    model = tf.sequential();
-    model.add(tf.layers.dense({ inputShape: [inputShape], units: 16, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: outputShape, activation: 'sigmoid' }));
+        model = tf.sequential();
+        model.add(tf.layers.dense({ inputShape: [inputShape], units: 16, activation: 'relu' }));
+        model.add(tf.layers.dense({ units: outputShape, activation: 'sigmoid' }));
 
-    model.compile({
-        optimizer: tf.train.adam(0.05),
-        loss: 'meanSquaredError'
-    });
+        model.compile({
+            optimizer: tf.train.adam(0.05),
+            loss: 'meanSquaredError'
+        });
 
-    console.log('logic-map > Training....');
-    await model.fit(xs, ys, { epochs: 200, verbose: 0 });
-    
-    await model.save(MODEL_PATH);
-    console.log(`logic-map > Training Complete, model saved in ${MODEL_PATH}`);
-    showMainMenu();
+        console.log('logic-map > Training....');
+        await model.fit(xs, ys, { epochs: 200, verbose: 0 });
+        
+        await model.save(MODEL_PATH);
+        console.log(`logic-map > Training Complete, model saved in ${MODEL_PATH}`);
+        showMainMenu();
+    } catch (err) {
+        console.log('logic-map > Error: Invalid data format. Please use format: [000 - 1110, 001 - 0001]');
+        console.log('logic-map > Type /help for more information.');
+        showMainMenu();
+    }
 }
 
 /**
@@ -70,13 +76,24 @@ function runInference(inputStr) {
         return showMainMenu();
     }
 
-    const inputArr = [inputStr.split('').map(Number)];
-    const inputTensor = tf.tensor2d(inputArr);
-    const prediction = model.predict(inputTensor);
-    const result = prediction.round().dataSync().join('');
-    
-    console.log(`logic-map > output : ${result}`);
-    askInference();
+    try {
+        // Validate input: must be binary string (0s and 1s only)
+        if (!/^[01]+$/.test(inputStr.trim())) {
+            throw new Error('Input must contain only 0s and 1s.');
+        }
+
+        const inputArr = [inputStr.split('').map(Number)];
+        const inputTensor = tf.tensor2d(inputArr);
+        const prediction = model.predict(inputTensor);
+        const result = prediction.round().dataSync().join('');
+        
+        console.log(`logic-map > output : ${result}`);
+        askInference();
+    } catch (err) {
+        console.log(`logic-map > Error: ${err.message}`);
+        console.log('logic-map > Type /help for more information.');
+        askInference();
+    }
 }
 
 /**
@@ -108,7 +125,8 @@ async function handleMainMenu(choice) {
             trainModel(data);
         });
     } else {
-        console.log('logic-map > Invalid option.');
+        console.log('logic-map > Invalid option. Please enter 1 or 2.');
+        console.log('logic-map > Type /help for more information.');
         showMainMenu();
     }
 }
