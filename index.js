@@ -1,11 +1,8 @@
+// 1. Mute the C++ CPU optimization logs
+process.env['TF_CPP_MIN_LOG_LEVEL'] = '2';
+
+// 2. Mute the Node.js deprecation warnings (url.parse)
 process.removeAllListeners('warning');
-// OR a more surgical approach:
-process.on('warning', (warning) => {
-    if (warning.name === 'DeprecationWarning' && warning.message.includes('url.parse')) {
-        return;
-    }
-    console.warn(warning.stack);
-});
 
 const util = require("util");
 util.isNullOrUndefined = util.isNullOrUndefined || function(x) { return x === null || x === undefined; };
