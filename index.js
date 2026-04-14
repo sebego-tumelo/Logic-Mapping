@@ -1,67 +1,149 @@
-const util = require('util');
-if (typeof util.isNullOrUndefined !== 'function') {
-  util.isNullOrUndefined = function (value) {
-    return value === null || value === undefined;
-  };
-}
-if (typeof util.isArray !== 'function') {
-  util.isArray = Array.isArray;
-}
-
+const util = require("util");
+util.isNullOrUndefined = util.isNullOrUndefined || function(x) { return x === null || x === undefined; };
 const tf = require('@tensorflow/tfjs-node');
+const readline = require('readline');
+const fs = require('fs');
 
-async function trainMappingModel() {
-    // 1. Define the Dataset
-    const inputData = [
-        [0,0,0], [0,0,1], [0,1,0], [0,1,1],
-        [1,0,0], [1,0,1], [1,1,0], [1,1,1]
-    ];
-    const outputData = [
-        [1,1,1,0], [0,0,0,1], [1,0,0,1], [0,1,1,0],
-        [0,1,0,0], [1,1,0,1], [0,0,1,0], [1,0,1,1]
-    ];
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+    terminal: false
+});
 
-    const xs = tf.tensor2d(inputData);
-    const ys = tf.tensor2d(outputData);
+let model = null;
+const MODEL_PATH = 'file://./my-logic-model';
 
-    // 2. Build the Model
-    const model = tf.sequential();
-    
-    // Hidden layer: 16 neurons often works well for small logic gates
-    model.add(tf.layers.dense({
-        inputShape: [3],
-        units: 16,
-        activation: 'relu'
-    }));
-    
-    // Output layer: 4 units (one for each bit)
-    // 'sigmoid' is best here because it forces values between 0 and 1
-    model.add(tf.layers.dense({
-        units: 4,
-        activation: 'sigmoid'
-    }));
+/**
+ * Utility to parse the user's data map string into Tensors
+ * Format: [000 - 1110, 001 - 0001]
+ */
+function parseDataMap(inputString) {
+    const pairs = inputString.replace(/[\[\]]/g, '').split(',');
+    const inputs = [];
+    const outputs = [];
 
-    // 3. Compile the Model
+    pairs.forEach(pair => {
+        const [inStr, outStr] = pair.split('-').map(s => s.trim());
+        if (inStr && outStr) {
+            inputs.push(inStr.split('').map(Number));
+            outputs.push(outStr.split('').map(Number));
+        }
+    });
+
+    return {
+        xs: tf.tensor2d(inputs),
+        ys: tf.tensor2d(outputs),
+        inputShape: inputs[0].length,
+        outputShape: outputs[0].length
+    };
+}
+
+/**
+ * Core Logic: Training the Neural Network
+ */
+async function trainModel(dataString) {
+    const { xs, ys, inputShape, outputShape } = parseDataMap(dataString);
+
+    model = tf.sequential();
+    model.add(tf.layers.dense({ inputShape: [inputShape], units: 16, activation: 'relu' }));
+    model.add(tf.layers.dense({ units: outputShape, activation: 'sigmoid' }));
+
     model.compile({
-        optimizer: tf.train.adam(0.05), // Higher learning rate for small datasets
+        optimizer: tf.train.adam(0.05),
         loss: 'meanSquaredError'
     });
 
-    // 4. Train the Model
-    console.log('Training...');
-    await model.fit(xs, ys, {
-        epochs: 200,
-        shuffle: true
-    });
-    await model.save('file://./my-logic-model');
-    console.log('Training Complete!');
-
-    // 5. Test it with 011 (Expected: 0110)
-    const testInput = tf.tensor2d([[0, 1, 1]]);
-    const prediction = model.predict(testInput);
+    console.log('logic-map > Training....');
+    await model.fit(xs, ys, { epochs: 200, verbose: 0 });
     
-    // Round the results to get clean 0s and 1s
-    prediction.round().print();
+    await model.save(MODEL_PATH);
+    console.log(`logic-map > Training Complete, model saved in ${MODEL_PATH}`);
+    showMainMenu();
 }
 
-trainMappingModel();
+/**
+ * Core Logic: Prediction (Inference)
+ */
+function runInference(inputStr) {
+    if (!model) {
+        console.log('logic-map > Error: No model loaded. Please train or load a model first.');
+        return showMainMenu();
+    }
+
+    const inputArr = [inputStr.split('').map(Number)];
+    const inputTensor = tf.tensor2d(inputArr);
+    const prediction = model.predict(inputTensor);
+    const result = prediction.round().dataSync().join('');
+    
+    console.log(`logic-map > output : ${result}`);
+    askInference();
+}
+
+/**
+ * Menu & Command Flows
+ */
+function showMainMenu() {
+    console.log('\n--- logic-map > select one option ---');
+    console.log('1. Load model');
+    console.log('2. Train model');
+    rl.question('user > ', handleMainMenu);
+}
+
+async function handleMainMenu(choice) {
+    if (checkCommands(choice)) return;
+
+    if (choice === '1') {
+        try {
+            model = await tf.loadLayersModel(`${MODEL_PATH}/model.json`);
+            console.log('logic-map > Model loaded successfully.');
+            askInference();
+        } catch (err) {
+            console.log('logic-map > Error: No saved model found. Please train one first.');
+            showMainMenu();
+        }
+    } else if (choice === '2') {
+        console.log('logic-map > enter data map (e.g., [000 - 1110, 001 - 0001])');
+        rl.question('user > ', (data) => {
+            if (checkCommands(data)) return;
+            trainModel(data);
+        });
+    } else {
+        console.log('logic-map > Invalid option.');
+        showMainMenu();
+    }
+}
+
+function askInference() {
+    rl.question('logic-map > enter input (or /home) \nuser > ', (input) => {
+        if (checkCommands(input)) return;
+        runInference(input);
+    });
+}
+
+/**
+ * Global Command Handler
+ */
+function checkCommands(input) {
+    const cmd = input.trim().toLowerCase();
+    if (cmd === '/exit') {
+        console.log('logic-map > shutting down...');
+        process.exit();
+    }
+    if (cmd === '/home') {
+        showMainMenu();
+        return true;
+    }
+    if (cmd === '/help') {
+        console.log('\n--- Commands ---');
+        console.log('/home - Return to main menu');
+        console.log('/help - Show this list');
+        console.log('/exit - Close the program');
+        console.log('----------------\n');
+        return true;
+    }
+    return false;
+}
+
+// Start the program
+console.log('Logic-Map CLI Loaded.');
+showMainMenu();
