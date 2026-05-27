@@ -52,12 +52,13 @@ async function trainModel(dataString) {
         const { xs, ys, inputShape, outputShape } = parseDataMap(dataString);
 
         model = tf.sequential();
-        model.add(tf.layers.dense({ inputShape: [inputShape], units: 16, activation: 'relu' }));
+        model.add(tf.layers.dense({ inputShape: [inputShape], units: 32, activation: 'relu' }));
+        model.add(tf.layers.dense({ units: 16, activation: 'relu' }));
         model.add(tf.layers.dense({ units: outputShape, activation: 'sigmoid' }));
 
         model.compile({
-            optimizer: tf.train.adam(0.05),
-            loss: 'meanSquaredError'
+            optimizer: tf.train.adam(0.01),
+            loss: 'binaryCrossentropy'
         });
 
         console.log('logic-map > Training....');
