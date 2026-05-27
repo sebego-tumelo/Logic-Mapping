@@ -10,6 +10,10 @@ const tf = require('@tensorflow/tfjs-node');
 const readline = require('readline');
 const fs = require('fs');
 
+const LOGIC_PREFIX = '\x1b[96mlogic-map >';
+const USER_PREFIX = '\x1b[95muser >';
+const RESET = '\x1b[0m';
+
 const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
@@ -61,15 +65,15 @@ async function trainModel(dataString) {
             loss: 'binaryCrossentropy'
         });
 
-        console.log('logic-map > Training....');
+        console.log(`${LOGIC_PREFIX} Training....${RESET}`);
         await model.fit(xs, ys, { epochs: 200, verbose: 0 });
         
         await model.save(MODEL_PATH);
-        console.log(`logic-map > Training Complete, model saved in ${MODEL_PATH}`);
+        console.log(`${LOGIC_PREFIX} Training Complete, model saved in ${MODEL_PATH}${RESET}`);
         showMainMenu();
     } catch (err) {
-        console.log('logic-map > Error: Invalid data format. Please use format: [000 - 1110, 001 - 0001]');
-        console.log('logic-map > Type /help for more information.');
+        console.log(`${LOGIC_PREFIX} Error: Invalid data format. Please use format: [000 - 1110, 001 - 0001]${RESET}`);
+        console.log(`${LOGIC_PREFIX} Type /help for more information.${RESET}`);
         showMainMenu();
     }
 }
@@ -79,7 +83,7 @@ async function trainModel(dataString) {
  */
 function runInference(inputStr) {
     if (!model) {
-        console.log('logic-map > Error: No model loaded. Please train or load a model first.');
+        console.log(`${LOGIC_PREFIX} Error: No model loaded. Please train or load a model first.${RESET}`);
         return showMainMenu();
     }
 
@@ -94,11 +98,11 @@ function runInference(inputStr) {
         const prediction = model.predict(inputTensor);
         const result = prediction.round().dataSync().join('');
         
-        console.log(`logic-map > output : ${result}`);
+        console.log(`${LOGIC_PREFIX} output : ${result}${RESET}`);
         askInference();
     } catch (err) {
-        console.log(`logic-map > Error: ${err.message}`);
-        console.log('logic-map > Type /help for more information.');
+        console.log(`${LOGIC_PREFIX} Error: ${err.message}${RESET}`);
+        console.log(`${LOGIC_PREFIX} Type /help for more information.${RESET}`);
         askInference();
     }
 }
@@ -107,15 +111,15 @@ function runInference(inputStr) {
  * Menu & Command Flows
  */
 function showMainMenu() {
-    console.log('\n--- logic-map > select one option ---');
+    console.log(`\n${LOGIC_PREFIX} --- select one option ---${RESET}`);
     console.log('1. Load model');
     console.log('2. Train model');
-    rl.question('user > ', handleMainMenu);
+    rl.question(`${USER_PREFIX} `, handleMainMenu);
 }
 
 function promptForTrainingData() {
-    console.log('logic-map > enter data map (e.g., [000 - 1110, 001 - 0001])');
-    rl.question('user > ', (data) => {
+    console.log(`${LOGIC_PREFIX} enter data map (e.g., [000 - 1110, 001 - 0001])${RESET}`);
+    rl.question(`${USER_PREFIX} `, (data) => {
         const dataCmd = data.trim().toLowerCase();
         
         if (dataCmd === '/help') {
@@ -142,23 +146,23 @@ async function handleMainMenu(choice) {
     if (choice === '1') {
         try {
             model = await tf.loadLayersModel(`${MODEL_PATH}/model.json`);
-            console.log('logic-map > Model loaded successfully.');
+            console.log(`${LOGIC_PREFIX} Model loaded successfully.${RESET}`);
             askInference();
         } catch (err) {
-            console.log('logic-map > Error: No saved model found. Please train one first.');
+            console.log(`${LOGIC_PREFIX} Error: No saved model found. Please train one first.${RESET}`);
             showMainMenu();
         }
     } else if (choice === '2') {
         promptForTrainingData();
     } else {
-        console.log('logic-map > Invalid option. Please enter 1 or 2.');
-        console.log('logic-map > Type /help for more information.');
+        console.log(`${LOGIC_PREFIX} Invalid option. Please enter 1 or 2.${RESET}`);
+        console.log(`${LOGIC_PREFIX} Type /help for more information.${RESET}`);
         showMainMenu();
     }
 }
 
 function askInference() {
-    rl.question('logic-map > enter input (or /home) \nuser > ', (input) => {
+    rl.question(`${LOGIC_PREFIX} enter input (or /home) ${RESET}\n${USER_PREFIX} `, (input) => {
         const cmd = input.trim().toLowerCase();
         
         if (cmd === '/help') {
@@ -182,7 +186,7 @@ function enterHelpMode(returnCallback) {
     console.log('/exit - Close the program');
     console.log('----------------\n');
     
-    rl.question('user > ', (input) => {
+    rl.question(`${USER_PREFIX} `, (input) => {
         const cmd = input.trim().toLowerCase();
         
         if (cmd === '/help') {
@@ -192,7 +196,7 @@ function enterHelpMode(returnCallback) {
         }
         
         if (cmd === '/exit') {
-            console.log('logic-map > shutting down...');
+            console.log(`${LOGIC_PREFIX} shutting down...${RESET}`);
             process.exit();
         }
         
@@ -201,7 +205,7 @@ function enterHelpMode(returnCallback) {
             return;
         }
         
-        console.log('logic-map > Invalid command.');
+        console.log(`${LOGIC_PREFIX} Invalid command.${RESET}`);
         enterHelpMode(returnCallback);
     });
 }
@@ -212,7 +216,7 @@ function enterHelpMode(returnCallback) {
 function checkCommands(input) {
     const cmd = input.trim().toLowerCase();
     if (cmd === '/exit') {
-        console.log('logic-map > shutting down...');
+        console.log(`${LOGIC_PREFIX} shutting down...${RESET}`);
         process.exit();
     }
     if (cmd === '/home') {
