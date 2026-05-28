@@ -22,9 +22,14 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "wiki:init": "repomix --output codebase-snapshot.xml",
+    "update": "git diff $(node -p \"require('./.wiki/wiki_state.json').last_synced_commit\") HEAD > wiki-changes.diff"
   },
   "dependencies": {
     "@tensorflow/tfjs-node": "^4.22.0"
+  },
+  "devDependencies": {
+    "repomix": "^1.14.1"
   }
 }
