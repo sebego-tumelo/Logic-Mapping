@@ -1,6 +1,7 @@
 {
   "name": "logic-mapping",
   "version": "1.0.0",
+  "type": "module",
   "description": "maaping logic using tensorflow",
   "keywords": [
     "logic",
@@ -18,7 +19,6 @@
   },
   "license": "ISC",
   "author": "tumelo-sebego",
-  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
