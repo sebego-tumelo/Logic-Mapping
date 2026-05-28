@@ -17,12 +17,12 @@ The model is trained using `binaryCrossentropy` loss and the Adam optimizer.
 The codebase is structured into the following key files and directories:
 
 *   **`/my-logic-model`**: This directory stores the trained TensorFlow.js model.
-    *   `model.json`: Contains the model's architecture (topology) as a TF.js `Sequential` model with two Dense layers.
+    *   `model.json`: Contains the model's architecture (topology) as a TF.js `Sequential` model with two Dense layers, including configurations for activations (`relu`, `sigmoid`), units, and initializers.
     *   `weights.bin`: Stores the trained weights (kernel and bias) of the neural network corresponding to `model.json`.
 *   **`.gitignore`**: Standard ignore file for Node.js projects, excluding `node_modules`, build artifacts, environment files, and IDE-specific configurations.
-*   **`index.js`**: The main entry point for the Logic-Mapping CLI application. It handles user interaction via `readline`, parses training data, builds and trains a TensorFlow.js model, saves the model, and performs inference. It also includes polyfills for Node.js v24 compatibility.
-*   **`package.json`**: The Node.js project manifest file. It defines project metadata, scripts for execution (`start` for `index.js`, `update` for `sync-wiki.js`, `wiki:init` for `repomix`), and lists all project dependencies. It's configured as an ES module (`"type": "module"`).
-*   **`README.md`**: Provides a high-level description of the project, installation instructions, detailed usage guidelines, input requirements, example workflows, and compatibility notes.
+*   **`index.js`**: The main entry point for the Logic-Mapping CLI application. It handles user interaction via `readline`, parses training data, builds and trains a TensorFlow.js model, saves the model, and performs inference. It also includes polyfills for Node.js v24 compatibility. Key constants like `LOGIC_PREFIX`, `MODEL_PATH`, `RESET`, and `USER_PREFIX` are defined within this file for CLI formatting and model management.
+*   **`package.json`**: The Node.js project manifest file. It defines project metadata (name, version, description, author, license, keywords), script commands for execution (`start` for `index.js`, `update` for `sync-wiki.js`, `wiki:init` for `repomix`), and lists all project dependencies and devDependencies. It's configured as an ES module (`"type": "module"`).
+*   **`README.md`**: Provides a high-level description of the project, installation instructions, detailed usage guidelines, input requirements, example workflows, and compatibility notes. It includes chapters and sections such as `Logic-Mapping`, `Description`, `How It Works`, `Installation`, `Usage`, `Input Requirements`, `Example Workflow`, `Navigation`, `Compatibility`, and `License`.
 *   **`sync-wiki.js`**: A utility script responsible for generating and incrementally updating the project's documentation (`.wiki/index.md`) using a large language model (Google GenAI) and a code-bundling tool (Repomix). It manages a state file (`.wiki/wiki_state.json`) to track the last synced Git commit.
 *   **`test_mapping.js`**: A dedicated script for programmatically loading a trained TensorFlow.js model and testing it against a predefined set of binary input-output test cases. It reports the accuracy of the model's predictions in a tabular format. Includes the same Node.js v24 polyfill as `index.js`.
 
@@ -31,9 +31,9 @@ The codebase is structured into the following key files and directories:
 The project relies on several key external libraries and Node.js built-in modules:
 
 *   **`@tensorflow/tfjs-node`**: The core machine learning library for the project, providing TensorFlow.js functionalities optimized for Node.js environments. It is used for building, training, saving, loading, and running neural networks in both `index.js` and `test_mapping.js`.
-*   **`@google/genai`**: Google's official client library for interacting with the Gemini API. It is exclusively used by `sync-wiki.js` for AI-driven documentation generation and updates.
+*   **`@google/genai`**: Google's official client library for interacting with the Gemini API. It is exclusively used by `sync-wiki.js` for AI-driven documentation generation and updates, typically initialized with an `apiKey` from environment variables.
 *   **`repomix`**: A CLI tool that merges the entire codebase into a single document. It is used programmatically by `sync-wiki.js` to create a `codebase-snapshot.xml` which is then fed to the Gemini API. Also available as an `npm script` (`wiki:init`).
-*   **`readline` (Node.js built-in)**: Used by `index.js` for handling asynchronous user input and displaying output in the command-line interface.
+*   **`readline` (Node.js built-in)**: Used by `index.js` for handling asynchronous user input and displaying output in the command-line interface via a `rl` (readline interface) instance.
 *   **`fs` (Node.js File System built-in)**: Used extensively for file operations:
     *   `index.js`: Saving and loading TensorFlow.js models.
     *   `sync-wiki.js`: Creating directories, reading/writing `wiki_state.json`, reading `codebase-snapshot.xml`, writing `index.md`, and deleting temporary files.
@@ -77,6 +77,8 @@ The project has three primary execution paths:
         *   If `git diff` shows changes, it reads the current `.wiki/index.md` and sends both the `currentIndex` and the `gitDiff` to the `gemini-2.5-flash` model for an intelligent update.
         *   Overwrites `.wiki/index.md` with the AI-adjusted documentation.
         *   Updates `wiki_state.json` by advancing `last_synced_commit` to the current HEAD and incrementing the `version`.
+    *   **Helper Functions**:
+        *   `cleanMarkdown(text)`: A utility function used to refine the AI-generated markdown text.
 
 #### 4.3. Model Testing Script (`test_mapping.js`)
 
