@@ -40,6 +40,10 @@ function parseDataMap(inputString) {
         }
     });
 
+    if (inputs.length === 0 || outputs.length === 0) {
+        throw new Error('Empty or unparseable vector maps.');
+    }
+
     return {
         xs: tf.tensor2d(inputs),
         ys: tf.tensor2d(outputs),
@@ -68,13 +72,19 @@ async function trainModel(dataString) {
         console.log(`${LOGIC_PREFIX} Training....${RESET}`);
         await model.fit(xs, ys, { epochs: 200, verbose: 0 });
         
+        // Clean memory metrics instantly to stabilize Codespace resources
+        xs.dispose();
+        ys.dispose();
+        
         await model.save(MODEL_PATH);
         console.log(`${LOGIC_PREFIX} Training Complete, model saved in ${MODEL_PATH}${RESET}`);
-        showMainMenu();
+        
+        // Use setTimeout to clear execution stack lines safely
+        setTimeout(showMainMenu, 0);
     } catch (err) {
         console.log(`${LOGIC_PREFIX} Error: Invalid data format. Please use format: [000 - 1110, 001 - 0001]${RESET}`);
         console.log(`${LOGIC_PREFIX} Type /help for more information.${RESET}`);
-        showMainMenu();
+        setTimeout(showMainMenu, 0);
     }
 }
 
@@ -84,26 +94,35 @@ async function trainModel(dataString) {
 function runInference(inputStr) {
     if (!model) {
         console.log(`${LOGIC_PREFIX} Error: No model loaded. Please train or load a model first.${RESET}`);
-        return showMainMenu();
+        return setTimeout(showMainMenu, 0);
     }
 
     try {
-        // Validate input: must be binary string (0s and 1s only)
         if (!/^[01]+$/.test(inputStr.trim())) {
             throw new Error('Input must contain only 0s and 1s.');
         }
 
-        const inputArr = [inputStr.split('').map(Number)];
+        const inputArr = [inputStr.trim().split('').map(Number)];
+        const expectedInputShape = model.inputs[0].shape[1];
+        
+        if (inputArr[0].length !== expectedInputShape) {
+            throw new Error(`Dimension mismatch. Expected exactly ${expectedInputShape} bits.`);
+        }
+
         const inputTensor = tf.tensor2d(inputArr);
         const prediction = model.predict(inputTensor);
         const result = prediction.round().dataSync().join('');
         
         console.log(`${LOGIC_PREFIX} output : ${result}${RESET}`);
-        askInference();
+        
+        inputTensor.dispose();
+        prediction.dispose();
+        
+        setTimeout(askInference, 0);
     } catch (err) {
         console.log(`${LOGIC_PREFIX} Error: ${err.message}${RESET}`);
         console.log(`${LOGIC_PREFIX} Type /help for more information.${RESET}`);
-        askInference();
+        setTimeout(askInference, 0);
     }
 }
 
@@ -114,64 +133,50 @@ function showMainMenu() {
     console.log(`\n${LOGIC_PREFIX} --- select one option ---${RESET}`);
     console.log('1. Load model');
     console.log('2. Train model');
-    rl.question(`${USER_PREFIX} `, handleMainMenu);
+    rl.question(`${USER_PREFIX} `, (choice) => {
+        const cmd = choice.trim().toLowerCase();
+        if (cmd === '/help') return enterHelpMode(showMainMenu);
+        if (checkCommands(choice)) return;
+        handleMainMenu(choice);
+    });
 }
 
 function promptForTrainingData() {
     console.log(`${LOGIC_PREFIX} enter data map (e.g., [000 - 1110, 001 - 0001])${RESET}`);
     rl.question(`${USER_PREFIX} `, (data) => {
         const dataCmd = data.trim().toLowerCase();
-        
-        if (dataCmd === '/help') {
-            enterHelpMode(promptForTrainingData);
-            return;
-        }
-        
+        if (dataCmd === '/help') return enterHelpMode(promptForTrainingData);
         if (checkCommands(data)) return;
-        
         trainModel(data);
     });
 }
 
 async function handleMainMenu(choice) {
-    const cmd = choice.trim().toLowerCase();
-    
-    if (cmd === '/help') {
-        enterHelpMode(showMainMenu);
-        return;
-    }
-    
-    if (checkCommands(choice)) return;
+    const selection = choice.trim();
 
-    if (choice === '1') {
+    if (selection === '1') {
         try {
             model = await tf.loadLayersModel(`${MODEL_PATH}/model.json`);
             console.log(`${LOGIC_PREFIX} Model loaded successfully.${RESET}`);
-            askInference();
+            setTimeout(askInference, 0);
         } catch (err) {
             console.log(`${LOGIC_PREFIX} Error: No saved model found. Please train one first.${RESET}`);
-            showMainMenu();
+            setTimeout(showMainMenu, 0);
         }
-    } else if (choice === '2') {
+    } else if (selection === '2') {
         promptForTrainingData();
     } else {
         console.log(`${LOGIC_PREFIX} Invalid option. Please enter 1 or 2.${RESET}`);
         console.log(`${LOGIC_PREFIX} Type /help for more information.${RESET}`);
-        showMainMenu();
+        setTimeout(showMainMenu, 0);
     }
 }
 
 function askInference() {
     rl.question(`${LOGIC_PREFIX} enter input (or /home) ${RESET}\n${USER_PREFIX} `, (input) => {
         const cmd = input.trim().toLowerCase();
-        
-        if (cmd === '/help') {
-            enterHelpMode(askInference);
-            return;
-        }
-        
+        if (cmd === '/help') return enterHelpMode(askInference);
         if (checkCommands(input)) return;
-        
         runInference(input);
     });
 }
@@ -190,19 +195,15 @@ function enterHelpMode(returnCallback) {
         const cmd = input.trim().toLowerCase();
         
         if (cmd === '/help') {
-            // Redisplay help
-            enterHelpMode(returnCallback);
-            return;
+            return enterHelpMode(returnCallback);
         }
-        
         if (cmd === '/exit') {
             console.log(`${LOGIC_PREFIX} shutting down...${RESET}`);
-            process.exit();
+            rl.close();
+            process.exit(0);
         }
-        
         if (cmd === '/home') {
-            returnCallback();
-            return;
+            return setTimeout(showMainMenu, 0);
         }
         
         console.log(`${LOGIC_PREFIX} Invalid command.${RESET}`);
@@ -217,10 +218,11 @@ function checkCommands(input) {
     const cmd = input.trim().toLowerCase();
     if (cmd === '/exit') {
         console.log(`${LOGIC_PREFIX} shutting down...${RESET}`);
-        process.exit();
+        rl.close();
+        process.exit(0);
     }
     if (cmd === '/home') {
-        showMainMenu();
+        setTimeout(showMainMenu, 0);
         return true;
     }
     return false;
