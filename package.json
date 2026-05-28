@@ -24,7 +24,7 @@
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "wiki:init": "repomix --output codebase-snapshot.xml",
-    "update": "node sync-wiki.js"
+    "update": "node --env-file=.env sync-wiki.js"
   },
   "dependencies": {
     "@google/genai": "^2.6.0",

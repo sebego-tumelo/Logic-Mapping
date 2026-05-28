@@ -2,10 +2,9 @@ import { GoogleGenAI } from '@google/genai';
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-const apiKey = import.meta.env.GEMINI_API_KEY;
 
 // Initialize the Gemini API client using your Codespace environment variable
-const ai = new GoogleGenAI({ apiKey });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 async function runWikiEngine() {
   const wikiDir = './.wiki';
@@ -14,7 +13,7 @@ async function runWikiEngine() {
 
   // Grab the current Git Commit SHA right now
   const currentCommit = execSync('git rev-parse --short HEAD').toString().trim();
-
+    console.log("foo")
   // ==========================================
   // PHASE 1: INITIALIZATION (If .wiki doesn't exist)
   // ==========================================

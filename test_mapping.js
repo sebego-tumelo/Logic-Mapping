@@ -1,10 +1,16 @@
 // Polyfill for util.isNullOrUndefined which is missing in Node.js 24
 // This ensures compatibility with TensorFlow.js
-const util = require("util");
-util.isNullOrUndefined = util.isNullOrUndefined || function(x) { return x === null || x === undefined; };
+import * as util from 'util';
+try {
+    if (typeof util.isNullOrUndefined === 'undefined') {
+        util.isNullOrUndefined = function(x) { return x === null || x === undefined; };
+    }
+} catch (e) {
+    // In some Node builds `util` may be non-extensible; ignore polyfill failure.
+}
 
 // Import TensorFlow.js Node backend for model loading and inference
-const tf = require('@tensorflow/tfjs-node');
+import * as tf from '@tensorflow/tfjs-node';
 
 // Main testing function - loads the trained model and tests all input-output pairs
 async function testModel() {
@@ -36,15 +42,19 @@ async function testModel() {
         // Counter for correct predictions
         let matchCount = 0;
         
+        // Determine model input/output dimensions
+        const inputDim = (model.inputs && model.inputs[0] && model.inputs[0].shape && model.inputs[0].shape[1]) || (model.layers && model.layers[0] && model.layers[0].batchInputShape && model.layers[0].batchInputShape[1]);
+        const outputDim = (model.outputs && model.outputs[0] && model.outputs[0].shape && model.outputs[0].shape[1]) || (model.layers && model.layers[model.layers.length-1] && model.layers[model.layers.length-1].units);
+
         // Test each input-output pair
         for (const testCase of testCases) {
             // Convert input string to array of numbers (e.g., '000' -> [0, 0, 0])
-            // Wrap in array because TensorFlow expects batch dimension
-            const inputArr = [testCase.input.split('').map(Number)];
-            
-            // Create 2D tensor from the input array
-            // Shape will be [1, 3] - 1 sample with 3 features
-            const inputTensor = tf.tensor2d(inputArr);
+            // Ensure the input matches the model's expected input dimension by padding/truncating
+            const rawArr = testCase.input.split('').map(Number);
+            const normalized = rawArr.slice(0, inputDim);
+            while (normalized.length < inputDim) normalized.push(0);
+            const inputArr = [normalized];
+            const inputTensor = tf.tensor2d(inputArr, [1, inputDim]);
             
             // Run inference - get model prediction for this input
             const prediction = model.predict(inputTensor);
@@ -53,11 +63,14 @@ async function testModel() {
             // .round() converts sigmoid outputs to 0 or 1
             // .dataSync() gets the actual values as a typed array
             // .join('') converts array to string
-            const output = prediction.round().dataSync().join('');
-            
-            // Check if prediction matches expected output
-            const match = output === testCase.expected ? '✓' : '✗';
-            if (output === testCase.expected) matchCount++;
+            const output = prediction.round().dataSync().slice(0, outputDim).join('');
+
+            // Check if prediction matches expected output (only when lengths match)
+            let match = 'n/a';
+            if (testCase.expected.length === output.length) {
+                match = output === testCase.expected ? '✓' : '✗';
+                if (match === '✓') matchCount++;
+            }
             
             // Display results in tabular format
             console.log(`${testCase.input}\t${testCase.expected}\t\t${output}\t\t${match}`);
