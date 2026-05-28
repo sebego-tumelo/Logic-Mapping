@@ -3,7 +3,6 @@ import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
-// Force the SDK to look strictly for your developer API key
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 function cleanMarkdown(text) {
@@ -14,40 +13,43 @@ async function runWikiEngine() {
   const wikiDir = './.wiki';
   const statePath = path.join(wikiDir, 'wiki_state.json');
   const indexPath = path.join(wikiDir, 'index.md');
-  const tagsPath = './tags';
+  const tagsPath = './tags.txt'; // Forced .txt extension
 
-  // Grab the current Git Commit SHA
   const currentCommit = execSync('git rev-parse --short HEAD').toString().trim();
 
   // ==========================================
-  // GENERATE CODEBASE TAG INDEX MAP
+  // GENERATE OPTIMIZED STRUCTURAL TAGS MAP
   // ==========================================
   console.log("🏷️  Compiling codebase structural tags database...");
-  // Generates a tag index file excluding node_modules and hidden folders
-  execSync('ctags -R --exclude=node_modules --exclude=.git --exclude=.wiki --exclude=package-lock.json --exclude=my-logic-model --exclude=*.json .');
-
-  if (!fs.existsSync(tagsPath)) {
-    console.error("❌ Failed to compile structural tag tokens.");
-    return;
-  }
   
-  const tagStructureIndex = fs.readFileSync(tagsPath, 'utf8');
+  // 1. Compile source files into tags.txt, explicitly excluding lockfiles and models
+  execSync('ctags -f tags.txt -R --exclude=node_modules --exclude=.git --exclude=.wiki --exclude=package-lock.json --exclude=my-logic-model --exclude=*.json .');
+
+  // 2. Read the source code tags
+  let structuralIndex = fs.readFileSync(tagsPath, 'utf8');
+
+  // 3. Explicitly append package.json contents so Gemini tracks environment settings
+  if (fs.existsSync('./package.json')) {
+    const packageJsonContent = fs.readFileSync('./package.json', 'utf8');
+    structuralIndex += `\n\n--- CRITICAL ENVIRONMENT CONFIGURATION (package.json) ---\n${packageJsonContent}`;
+  }
 
   // ==========================================
-  // PHASE 1: INITIALIZATION (If .wiki doesn't exist)
+  // PHASE 1: INITIALIZATION
   // ==========================================
   if (!fs.existsSync(statePath)) {
     console.log("📁 No wiki directory found. Initializing master index mapping...");
     fs.mkdirSync(wikiDir, { recursive: true });
 
-    console.log("🧠 Sending structural token tag maps to Gemini API...");
+    console.log("🧠 Sending structural tokens and project settings to Gemini API...");
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `
-        You are an advanced documentation architect. Analyze this universal ctags structural code token map:
-        ${tagStructureIndex}
+        You are an advanced documentation architect. Analyze this codebase structural map and core configuration file:
+        ${structuralIndex}
 
-        Generate a single master markdown file detailing the file architecture, definitions, global variables, and entry paths.
+        Generate a single master markdown file detailing the file architecture, structural definitions, global variables, and entry paths.
+        Explicitly document if the project behaves as CommonJS or ES Modules based on the configuration provided.
         Format the response as raw markdown text.
       `,
     });
@@ -62,9 +64,9 @@ async function runWikiEngine() {
   }
 
   // ==========================================
-  // PHASE 2: INCREMENTAL SYNC WITH TAG DRIFT
+  // PHASE 2: INCREMENTAL SYNC
   // ==========================================
-  console.log("🔄 Existing Wiki tracking configuration found. Checking file changes...");
+  console.log("🔄 Existing Wiki configuration found. Checking file changes...");
   const wikiState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
   
   const gitDiffRaw = execSync(`git diff ${wikiState.last_synced_commit} HEAD`).toString();
@@ -75,24 +77,23 @@ async function runWikiEngine() {
 
   const currentIndex = fs.readFileSync(indexPath, 'utf8');
 
-  console.log("🧠 Updating code architecture definitions based on new tag layouts...");
+  console.log("🧠 Updating code architecture definitions based on new layouts...");
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash',
     contents: `
       Here is our current master index documentation framework:
       ${currentIndex}
 
-      Here is the updated universal token index map showing precisely how the code definitions look right now:
-      ${tagStructureIndex}
+      Here is the updated structural index map and environment configuration:
+      ${structuralIndex}
 
-      Analyze the tag changes and update the master index documentation to match the latest structural blueprint.
+      Analyze the token and configuration changes. Update the master index documentation to match the latest structural blueprint.
       Format the response as raw markdown text.
     `,
   });
 
   fs.writeFileSync(indexPath, cleanMarkdown(response.text));
 
-  // Advance tracking checkpoints
   wikiState.last_synced_commit = currentCommit;
   wikiState.version = parseFloat((wikiState.version + 0.1).toFixed(1));
   fs.writeFileSync(statePath, JSON.stringify(wikiState, null, 2));
