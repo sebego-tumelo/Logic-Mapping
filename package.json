@@ -24,7 +24,7 @@
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "wiki:init": "repomix --output codebase-snapshot.xml",
-    "update": "git diff $(node -p \"require('./.wiki/wiki_state.json').last_synced_commit\") HEAD > wiki-changes.diff"
+    "update": "node sync-wiki.js"
   },
   "dependencies": {
     "@google/genai": "^2.6.0",

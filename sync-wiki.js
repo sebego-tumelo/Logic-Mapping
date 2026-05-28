@@ -2,9 +2,10 @@ import { GoogleGenAI } from '@google/genai';
 import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+const apiKey = import.meta.env.GEMINI_API_KEY;
 
 // Initialize the Gemini API client using your Codespace environment variable
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = new GoogleGenAI({ apiKey });
 
 async function runWikiEngine() {
   const wikiDir = './.wiki';
