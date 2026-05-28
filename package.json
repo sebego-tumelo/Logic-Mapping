@@ -27,6 +27,7 @@
     "update": "git diff $(node -p \"require('./.wiki/wiki_state.json').last_synced_commit\") HEAD > wiki-changes.diff"
   },
   "dependencies": {
+    "@google/genai": "^2.6.0",
     "@tensorflow/tfjs-node": "^4.22.0"
   },
   "devDependencies": {
