@@ -24,7 +24,7 @@ async function runWikiEngine() {
   // ==========================================
   console.log("🏷️  Compiling codebase structural tags database...");
   // Generates a tag index file excluding node_modules and hidden folders
-  execSync('ctags -R --exclude=node_modules --exclude=.git --exclude=.wiki .');
+  execSync('ctags -R --exclude=node_modules --exclude=.git --exclude=.wiki --exclude=package-lock.json --exclude=my-logic-model --exclude=*.json .');
 
   if (!fs.existsSync(tagsPath)) {
     console.error("❌ Failed to compile structural tag tokens.");

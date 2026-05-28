@@ -23,7 +23,7 @@
     "start": "node --env-file=.env index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "wiki:init": "repomix --output codebase-snapshot.xml",
-    "update": "node --env-file=.env sync-wiki.js"
+    "update": "node --env-file=.env sync-wiki.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.6.0",

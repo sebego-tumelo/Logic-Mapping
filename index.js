@@ -4,11 +4,11 @@ process.env['TF_CPP_MIN_LOG_LEVEL'] = '2';
 // 2. Mute the Node.js deprecation warnings (url.parse)
 process.removeAllListeners('warning');
 
-const util = import("util");
+const util = require("util");
 util.isNullOrUndefined = util.isNullOrUndefined || function(x) { return x === null || x === undefined; };
-const tf = import('@tensorflow/tfjs-node');
-const readline = import('readline');
-const fs = import('fs');
+const tf = require('@tensorflow/tfjs-node');
+const readline = require('readline');
+const fs = require('fs');
 
 const LOGIC_PREFIX = '\x1b[96mlogic-map >';
 const USER_PREFIX = '\x1b[95muser >';
