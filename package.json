@@ -1,7 +1,6 @@
 {
   "name": "logic-mapping",
   "version": "1.0.0",
-  "type": "module",
   "description": "maaping logic using tensorflow",
   "keywords": [
     "logic",
@@ -21,7 +20,7 @@
   "author": "tumelo-sebego",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node --env-file=.env index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "wiki:init": "repomix --output codebase-snapshot.xml",
     "update": "node --env-file=.env sync-wiki.js"
